@@ -19,7 +19,7 @@ import subprocess
 from . import pipeline
 
 
-def predictSimple(input, model):
+def predictSimple(input, model, iteration):
     from protein_mpnn_utils import loss_nll, loss_smoothed, gather_edges, gather_nodes, gather_nodes_t, cat_neighbors_nodes, _scores, _S_to_seq, tied_featurize, parse_PDB
 
     start_time = time.time()
@@ -135,7 +135,7 @@ def predictSimple(input, model):
                                         print_model_name = 'CA_model_name'
                                     else:
                                         print_model_name = 'model_name'
-                                    f.write('>{}, score={}, global_score={}, fixed_chains={}, designed_chains={}, {}={}, git_hash={}, seed={}\n{}\n'.format(name_, native_score_print, global_native_score_print, print_visible_chains, print_masked_chains, print_model_name, args.model_name, commit_str, seed, native_seq)) #write the native sequence
+#                                    f.write('>{}, score={}, global_score={}, fixed_chains={}, designed_chains={}, {}={}, git_hash={}, seed={}\n{}\n'.format(name_+"_iter"+str(iteration).zfill(6), native_score_print, global_native_score_print, print_visible_chains, print_masked_chains, print_model_name, args.model_name, commit_str, seed, native_seq)) #write the native sequence
                                 start = 0
                                 end = 0
                                 list_of_AAs = []
@@ -155,7 +155,7 @@ def predictSimple(input, model):
                                 global_score_print = np.format_float_positional(np.float32(global_score), unique=False, precision=4)
                                 seq_rec_print = np.format_float_positional(np.float32(seq_recovery_rate.detach().cpu().numpy()), unique=False, precision=4)
                                 sample_number = j*BATCH_COPIES+b_ix+1
-                                f.write('>T={}, sample={}, score={}, global_score={}, seq_recovery={}\n{}\n'.format(temp,sample_number,score_print,global_score_print,seq_rec_print,seq)) #write generated sequence
+                                f.write('>T={},iter={}, sample={}, score={}, global_score={}, seq_recovery={}\n{}\n'.format(temp,str(iteration).zfill(6),sample_number,score_print,global_score_print,seq_rec_print,seq)) #write generated sequence
     t1 = time.time()
     dt = round(float(t1-t0), 4)
     num_seqs = len(temperatures)*NUM_BATCHES*BATCH_COPIES
@@ -334,7 +334,7 @@ def setPrams():
                             
 
 def main():
-
+    
 #    from protein_mpnn_utils import loss_nll, loss_smoothed, gather_edges, gather_nodes, gather_nodes_t, cat_neighbors_nodes, _scores, _S_to_seq, tied_featurize, parse_PDB
  #   from protein_mpnn_utils import StructureDataset, StructureDatasetPDB, ProteinMPNN
     from protein_mpnn_utils import StructureDataset, StructureDatasetPDB, ProteinMPNN
@@ -362,10 +362,10 @@ def main():
     model.to(input["device"])
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
-    pipeline.makeOutputPath(input["folder_for_outputs"],input["args"])
-    
+    pipeline.makeOutputPath(input["folder_for_outputs"],input["args"])    
     # Validation epoch
-    sequences = predictSimple(input,model)
+    iteration = 0
+    sequences = predictSimple(input,model,iteration)
     print(sequences)
 
     
