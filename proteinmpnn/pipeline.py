@@ -70,6 +70,38 @@ def get_args():
     args = parser.parse_args() 
     return args
 
+
+def makeOutputPath(dirPath,args):
+    # Build paths for experiment
+    base_folder = dirPath
+    if base_folder[-1] != '/':
+        base_folder = base_folder + '/'
+    if not os.path.exists(base_folder):
+        os.makedirs(base_folder)
+    
+    if not os.path.exists(base_folder + 'seqs'):
+        os.makedirs(base_folder + 'seqs')
+    
+    if args.save_score:
+        if not os.path.exists(base_folder + 'scores'):
+            os.makedirs(base_folder + 'scores')
+
+    if args.score_only:
+        if not os.path.exists(base_folder + 'score_only'):
+            os.makedirs(base_folder + 'score_only')
+   
+    if args.conditional_probs_only:
+        if not os.path.exists(base_folder + 'conditional_probs_only'):
+            os.makedirs(base_folder + 'conditional_probs_only')
+
+    if args.unconditional_probs_only:
+        if not os.path.exists(base_folder + 'unconditional_probs_only'):
+            os.makedirs(base_folder + 'unconditional_probs_only')
+ 
+    if args.save_probs:
+        if not os.path.exists(base_folder + 'probs'):
+            os.makedirs(base_folder + 'probs') 
+
 #A number of functions/classes are adopted from: https://github.com/jingraham/neurips19-graph-protein-design
 
 def _scores(S, log_probs, mask):
