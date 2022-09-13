@@ -312,18 +312,33 @@ def main():
     input["omit_AAs_np"] = omit_AAs_np
     input["bias_AAs_np"] = bias_AAs_np
     input["seed"] = seed
+    input["checkpoint_path"] = checkpoint_path
+
+    modelParams = dict()
+    modelParams["ca_only"] = args.ca_only
+    modelParams["num_letters"] = 21
+    modelParams["hidden_dim"]=hidden_dim
+    modelParams["num_layers"] = num_layers
+    modelParams["augument_eps"] = args.backbone_noise
     
     print(40*'-')
-    checkpoint = torch.load(checkpoint_path, map_location=device) 
+    checkpoint = torch.load(input["checkpoint_path"], map_location=input["device"]) 
     print('Number of edges:', checkpoint['num_edges'])
     noise_level_print = checkpoint['noise_level']
     print(f'Training noise level: {noise_level_print}A')
-    model = ProteinMPNN(ca_only=args.ca_only, num_letters=21, node_features=hidden_dim, edge_features=hidden_dim, hidden_dim=hidden_dim, num_encoder_layers=num_layers, num_decoder_layers=num_layers, augment_eps=args.backbone_noise, k_neighbors=checkpoint['num_edges'])
+    
+    model = ProteinMPNN(ca_only=modelParams["ca_only"],
+                        num_letters=modelParams["num_letters"],
+                        node_features=modelParams["hidden_dim"],
+                        edge_features=modelParams["hidden_dim"],
+                        hidden_dim=modelParams["hidden_dim"],
+                        num_encoder_layers = modelParams["num_layers"],
+                        num_decoder_layers= modelParams["num_layers"],
+                        augment_eps = modelParams["augument_eps"],
+                        k_neighbors=checkpoint['num_edges'])
     model.to(device)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
-
-
     pipeline.makeOutputPath(folder_for_outputs,args)
     
     # Timing
