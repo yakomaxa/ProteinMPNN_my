@@ -19,7 +19,7 @@ import subprocess
 from . import pipeline
 
 
-def predict(input, model):
+def predictSimple(input, model):
     from protein_mpnn_utils import loss_nll, loss_smoothed, gather_edges, gather_nodes, gather_nodes_t, cat_neighbors_nodes, _scores, _S_to_seq, tied_featurize, parse_PDB
 
     start_time = time.time()
@@ -43,7 +43,8 @@ def predict(input, model):
     omit_AAs_np = input["omit_AAs_np"]
     bias_AAs_np = input["bias_AAs_np"]
     seed = input["seed"]
-    
+
+    sequences=[]
     with torch.no_grad():
         test_sum, test_weights = 0., 0.
         #print('Generating sequences...')
@@ -149,6 +150,7 @@ def predict(input, model):
                                     l0 += mc_length
                                     seq = seq[:l0] + '/' + seq[l0:]
                                     l0 += 1
+                                sequences.append(seq)
                                 score_print = np.format_float_positional(np.float32(score), unique=False, precision=4)
                                 global_score_print = np.format_float_positional(np.float32(global_score), unique=False, precision=4)
                                 seq_rec_print = np.format_float_positional(np.float32(seq_recovery_rate.detach().cpu().numpy()), unique=False, precision=4)
@@ -160,6 +162,7 @@ def predict(input, model):
     total_length = X.shape[1]
     print(f'{num_seqs} sequences of length {total_length} generated in {dt} seconds')
 
+    return sequences
 
 def setPrams():    
    # from pipeline import loss_nll, loss_smoothed, gather_edges, gather_nodes, gather_nodes_t, cat_neighbors_nodes, _scores, _S_to_seq, tied_featurize, parse_PDB
@@ -362,6 +365,7 @@ def main():
     pipeline.makeOutputPath(input["folder_for_outputs"],input["args"])
     
     # Validation epoch
-    predict(input,model)
+    sequences = predictSimple(input,model)
+    print(sequences)
 
     
