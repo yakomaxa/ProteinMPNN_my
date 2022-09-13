@@ -21,6 +21,12 @@ from . import pipeline
 
 def predict(input, model):
     from protein_mpnn_utils import loss_nll, loss_smoothed, gather_edges, gather_nodes, gather_nodes_t, cat_neighbors_nodes, _scores, _S_to_seq, tied_featurize, parse_PDB
+
+    start_time = time.time()
+    total_residues = 0
+    protein_list = []
+    total_step = 0
+    
     dataset_valid = input["dataset_valid"]
     BATCH_COPIES = input["BATCH_COPIES"]
     device = input["device"]
@@ -148,17 +154,14 @@ def predict(input, model):
                                 seq_rec_print = np.format_float_positional(np.float32(seq_recovery_rate.detach().cpu().numpy()), unique=False, precision=4)
                                 sample_number = j*BATCH_COPIES+b_ix+1
                                 f.write('>T={}, sample={}, score={}, global_score={}, seq_recovery={}\n{}\n'.format(temp,sample_number,score_print,global_score_print,seq_rec_print,seq)) #write generated sequence
-                t1 = time.time()
-                dt = round(float(t1-t0), 4)
-                num_seqs = len(temperatures)*NUM_BATCHES*BATCH_COPIES
-                total_length = X.shape[1]
-                print(f'{num_seqs} sequences of length {total_length} generated in {dt} seconds')
+    t1 = time.time()
+    dt = round(float(t1-t0), 4)
+    num_seqs = len(temperatures)*NUM_BATCHES*BATCH_COPIES
+    total_length = X.shape[1]
+    print(f'{num_seqs} sequences of length {total_length} generated in {dt} seconds')
 
 
-def main():
-
-    input=dict()
-    
+def setPrams():    
    # from pipeline import loss_nll, loss_smoothed, gather_edges, gather_nodes, gather_nodes_t, cat_neighbors_nodes, _scores, _S_to_seq, tied_featurize, parse_PDB
   #  from pipeline import StructureDataset, StructureDatasetPDB, ProteinMPNN
     from protein_mpnn_utils import loss_nll, loss_smoothed, gather_edges, gather_nodes, gather_nodes_t, cat_neighbors_nodes, _scores, _S_to_seq, tied_featurize, parse_PDB
@@ -296,6 +299,7 @@ def main():
     base_folder = folder_for_outputs
 
     #hogehoge
+    input=dict()
     input["dataset_valid"] = dataset_valid
     input["BATCH_COPIES"] = BATCH_COPIES
     input["device"] = device
@@ -313,6 +317,7 @@ def main():
     input["bias_AAs_np"] = bias_AAs_np
     input["seed"] = seed
     input["checkpoint_path"] = checkpoint_path
+    input["folder_for_outputs"] = folder_for_outputs
 
     modelParams = dict()
     modelParams["ca_only"] = args.ca_only
@@ -320,14 +325,29 @@ def main():
     modelParams["hidden_dim"]=hidden_dim
     modelParams["num_layers"] = num_layers
     modelParams["augument_eps"] = args.backbone_noise
+
+    return input, modelParams
+    
+                            
+
+def main():
+
+#    from protein_mpnn_utils import loss_nll, loss_smoothed, gather_edges, gather_nodes, gather_nodes_t, cat_neighbors_nodes, _scores, _S_to_seq, tied_featurize, parse_PDB
+ #   from protein_mpnn_utils import StructureDataset, StructureDatasetPDB, ProteinMPNN
+    from protein_mpnn_utils import StructureDataset, StructureDatasetPDB, ProteinMPNN
+
+
+    input, modelParams = setPrams()
     
     print(40*'-')
     checkpoint = torch.load(input["checkpoint_path"], map_location=input["device"]) 
     print('Number of edges:', checkpoint['num_edges'])
     noise_level_print = checkpoint['noise_level']
     print(f'Training noise level: {noise_level_print}A')
+
+
     
-    model = ProteinMPNN(ca_only=modelParams["ca_only"],
+    model = pipeline.ProteinMPNN(ca_only=modelParams["ca_only"],
                         num_letters=modelParams["num_letters"],
                         node_features=modelParams["hidden_dim"],
                         edge_features=modelParams["hidden_dim"],
@@ -336,15 +356,12 @@ def main():
                         num_decoder_layers= modelParams["num_layers"],
                         augment_eps = modelParams["augument_eps"],
                         k_neighbors=checkpoint['num_edges'])
-    model.to(device)
+    model.to(input["device"])
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
-    pipeline.makeOutputPath(folder_for_outputs,args)
+    pipeline.makeOutputPath(input["folder_for_outputs"],input["args"])
     
-    # Timing
-    start_time = time.time()
-    total_residues = 0
-    protein_list = []
-    total_step = 0
     # Validation epoch
     predict(input,model)
+
+    
